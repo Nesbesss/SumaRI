@@ -34,21 +34,9 @@ SumarAI is a Python application that summarizes YouTube video transcripts using 
     ```bash
     pip install -r requirements.txt
     ```
-
-    Ensure your `requirements.txt` file includes the following:
-
-    ```
-    tkinter
-    customtkinter
-    pillow
-    youtube_transcript_api
-    requests
-    groq
-    ```
-
 4. Set up your Groq API key:
 
-    Replace `"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"` in the script with your actual API key from Groq.
+    Replace `"Api_key_here"` in the script with your actual API key from Groq.
 
 ## Usage
 
