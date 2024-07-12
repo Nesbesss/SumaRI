@@ -19,7 +19,7 @@ SumarAI is a Python application that summarizes YouTube video transcripts using 
 
     ```bash
     git clone https://github.com/Nesbesss/SumaRI.git
-    cd SumarAI
+    cd SumaRI
     ```
 
 2. Create a virtual environment and activate it:
