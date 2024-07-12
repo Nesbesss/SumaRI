@@ -36,7 +36,7 @@ SumarAI is a Python application that summarizes YouTube video transcripts using 
     ```
 4. Set up your Groq API key:
  ```bash 
-vi summarai.py #windows notepad summarai.py
+vi summarai.py then save it #windows notepad summarai.py 
 ```
     Replace `"Api_key_here"` in the script with your actual API key from Groq. to get one go to https://console.groq.com/keys its free
 
