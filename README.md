@@ -52,7 +52,7 @@ SumarAI is a Python application that summarizes YouTube video transcripts using 
 
 ## Example
 
-- **Input:** YouTube Video ID: `dQw4w9WgXcQ`
+- **Input:** YouTube Video ID: `72Q4g3V8woc`
 - **Output:** Displayed video thumbnail and summary of the video transcript.
 
 ## Contributing
