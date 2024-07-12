@@ -1,4 +1,3 @@
-tkinter
 customtkinter
 Pillow
 youtube-transcript-api
