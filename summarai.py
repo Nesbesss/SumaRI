@@ -25,17 +25,22 @@ def get_video_transcript(video_id):
         return None
 
 def summarize_text(text):
-    # Truncate the text to reduce processing time
-    max_chars = 5000
+    max_chars = 10000
     truncated_text = text[:max_chars] + ("..." if len(text) > max_chars else "")
     
-    prompt = (f"Provide a comprehensive summary of the following YouTube video transcript. "
-              f"Include the following sections:\n"
-              f"1. 📌 Main Points (3-5 bullet points)\n"
-              f"2. 🌟 Highlights (2-3 key takeaways)\n"
-              f"3. 💡 Important Insights (1-2 paragraphs)\n"
-              f"4. 🔑 Key Concepts (list of 3-5 terms or ideas)\n\n"
-              f"Keep the entire summary under 300 words:\n\n{truncated_text}\n\nComprehensive summary:")
+    prompt = (f"Provide a detailed summary of the following YouTube video transcript. "
+              f"Include the following sections:\n\n"
+              f"1. 🎯 Overall Summary (2-3 paragraphs)\n"
+              f"2. 📌 Main Points (5-7 bullet points)\n"
+              f"3. 🌟 Key Highlights (3-5 specific moments or ideas)\n"
+              f"4. 💡 Important Insights (2-3 paragraphs on the significance of the content)\n"
+              f"5. 🔑 Key Concepts (list of 5-7 terms or ideas with brief explanations)\n"
+              f"6. 🤔 Thought-Provoking Questions (3-5 questions for further reflection)\n"
+              f"7. 📊 Content Structure (brief overview of how the video is organized)\n"
+              f"8. 🎭 Tone and Style (1 paragraph describing the presenter's approach)\n"
+              f"9. 🎨 Visual Elements (if mentioned in the transcript, describe any significant visual aids)\n"
+              f"10. 📚 Further Reading (suggest 2-3 related topics for additional research)\n\n"
+              f"Aim for a comprehensive summary of around 1000 words:\n\n{truncated_text}\n\nDetailed summary:")
     
     max_retries = 3
     for attempt in range(max_retries):
@@ -48,7 +53,7 @@ def summarize_text(text):
                     }
                 ],
                 model="mixtral-8x7b-32768",
-                max_tokens=400,
+                max_tokens=1500,
             )
             
             return chat_completion.choices[0].message.content
@@ -60,7 +65,45 @@ def summarize_text(text):
             else:
                 raise e
 
-# ... (rest of the functions remain the same)
+def get_thumbnail(video_id):
+    url = f"https://img.youtube.com/vi/{video_id}/0.jpg"
+    response = requests.get(url)
+    img = Image.open(BytesIO(response.content))
+    img.thumbnail((400, 300))  # Increased thumbnail size
+    return ImageTk.PhotoImage(img)
+
+def update_status(message):
+    status_label.configure(text=message)
+    root.update_idletasks()
+
+def summarize_thread(video_id):
+    update_status("📥 Retrieving video transcript...")
+    transcript = get_video_transcript(video_id)
+    if transcript:
+        update_status("🧠 Analyzing and summarizing... This may take a few moments.")
+        try:
+            summary = summarize_text(transcript)
+            summary_text.configure(state="normal")
+            summary_text.delete("1.0", tk.END)
+            summary_text.insert(tk.END, summary)
+            summary_text.configure(state="disabled")
+            update_status("✅ Summary complete! Scroll down to read the full analysis.")
+        except Exception as e:
+            error_message = f"❌ An error occurred while summarizing: {str(e)}"
+            summary_text.configure(state="normal")
+            summary_text.delete("1.0", tk.END)
+            summary_text.insert(tk.END, error_message)
+            summary_text.configure(state="disabled")
+            update_status("Error occurred during summarization.")
+    else:
+        summary_text.configure(state="normal")
+        summary_text.delete("1.0", tk.END)
+        summary_text.insert(tk.END, "❌ Failed to retrieve the video transcript.")
+        summary_text.configure(state="disabled")
+        update_status("Failed to retrieve transcript.")
+    progress_bar.stop()
+    progress_bar.pack_forget()
+    summarize_button.configure(state="normal")
 
 def start_summarize():
     video_id = video_id_entry.get()
@@ -86,44 +129,44 @@ def start_summarize():
 
 # Set up the main window
 root = ctk.CTk()
-root.title("SummarAI - YouTube Video Summarizer")
-root.geometry("800x800")  # Increased height to accommodate more text
+root.title("SummarAI - Advanced YouTube Video Summarizer")
+root.geometry("1000x800")  # Increased width and height
 
-# ASCII art logo
+# ASCII art logo with color
 logo_text = """
- ____                           ___  ___
-/ ___|  _   _  _ __ ___   __ _ |  _ \|_ _|
-\___ \ | | | || '_ ` _ \ / _` || |_) || | 
- ___) || |_| || | | | | | (_| ||  _ < | | 
-|____/  \__,_||_| |_| |_|\__,_||_| \_\___|
+\033[94m ____                                  ___  ___\033[0m
+\033[94m/ ___|  _   _  _ __ ___   _ __ ___    / _ \|_ _|\033[0m
+\033[94m\___ \ | | | || '_ ` _ \ | '_ ` _ \  | | | || | \033[0m
+\033[94m ___) || |_| || | | | | || | | | | | | |_| || | \033[0m
+\033[94m|____/  \__,_||_| |_| |_||_| |_| |_|  \___/|___|\033[0m
 """
 
-# Add logo to the top of the window
-logo_label = ctk.CTkLabel(root, text=logo_text, font=("Courier", 14), text_color="blue")
-logo_label.pack(pady=(10, 20))
+# Add stylized logo to the top of the window
+logo_label = ctk.CTkLabel(root, text=logo_text, font=("Courier", 16, "bold"), text_color="blue")
+logo_label.pack(pady=(20, 10))
 
 # Create and place widgets
 frame = ctk.CTkFrame(root)
 frame.pack(pady=20, padx=20, fill="both", expand=True)
 
-ctk.CTkLabel(frame, text="Enter YouTube Video ID:", font=("Arial", 16, "bold")).pack(pady=(0, 5))
-video_id_entry = ctk.CTkEntry(frame, width=300)
-video_id_entry.pack(pady=(0, 10))
+ctk.CTkLabel(frame, text="🎥 Enter YouTube Video ID:", font=("Arial", 18, "bold")).pack(pady=(0, 5))
+video_id_entry = ctk.CTkEntry(frame, width=400, height=40, font=("Arial", 14))
+video_id_entry.pack(pady=(0, 15))
 
-summarize_button = ctk.CTkButton(frame, text="🚀 Summarize", command=start_summarize, font=("Arial", 14, "bold"))
-summarize_button.pack(pady=(0, 10))
+summarize_button = ctk.CTkButton(frame, text="🚀 Generate Comprehensive Summary", command=start_summarize, font=("Arial", 16, "bold"), height=50)
+summarize_button.pack(pady=(0, 20))
 
 thumbnail_label = ctk.CTkLabel(frame, text="")
-thumbnail_label.pack(pady=(0, 10))
+thumbnail_label.pack(pady=(0, 20))
 
-summary_text = ctk.CTkTextbox(frame, wrap="word", width=700, height=400)  # Increased height
-summary_text.pack(pady=(0, 10))
+summary_text = ctk.CTkTextbox(frame, wrap="word", width=900, height=500, font=("Arial", 12))
+summary_text.pack(pady=(0, 20))
 summary_text.configure(state="disabled")
 
-status_label = ctk.CTkLabel(frame, text="", font=("Arial", 12, "italic"))
+status_label = ctk.CTkLabel(frame, text="", font=("Arial", 14, "italic"))
 status_label.pack(pady=(0, 10))
 
-progress_bar = ctk.CTkProgressBar(frame, mode="indeterminate", width=300)
+progress_bar = ctk.CTkProgressBar(frame, mode="indeterminate", width=400)
 # Don't pack the progress bar here, we'll pack it when needed
 
 root.mainloop()
