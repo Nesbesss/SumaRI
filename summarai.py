@@ -86,6 +86,39 @@ def summarize_text(text):
             else:
                 raise e
 
+def answer_question(summary, question):
+    prompt = f"""Based on the following summary of a YouTube video, please answer the question:
+
+Summary:
+{summary}
+
+Question: {question}
+
+Please provide a concise and accurate answer based solely on the information given in the summary."""
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                model="mixtral-8x7b-32768",
+                max_tokens=300,
+            )
+            
+            return chat_completion.choices[0].message.content
+        except Exception as e:
+            if "rate_limit_exceeded" in str(e) and attempt < max_retries - 1:
+                wait_time = 2 ** attempt
+                update_status(f"Rate limit reached. Waiting for {wait_time} seconds before retrying...")
+                time.sleep(wait_time)
+            else:
+                raise e
+
 def get_thumbnail(video_id):
     url = f"https://img.youtube.com/vi/{video_id}/0.jpg"
     response = requests.get(url)
@@ -109,6 +142,7 @@ def summarize_thread(video_id):
             summary_text.insert(tk.END, summary)
             summary_text.configure(state="disabled")
             update_status("✅ Summary complete! Scroll down to read the full analysis.")
+            question_frame.pack(pady=20, fill="x", expand=True)
         except Exception as e:
             error_message = f"❌ An error occurred while summarizing: {str(e)}"
             summary_text.configure(state="normal")
@@ -144,15 +178,43 @@ def start_summarize():
         progress_bar.pack(pady=(0, 10))
         progress_bar.start()
         summarize_button.configure(state="disabled")
+        question_frame.pack_forget()  # Hide question frame when starting a new summary
         
         threading.Thread(target=summarize_thread, args=(video_id,), daemon=True).start()
     except Exception as e:
         tk.messagebox.showerror("Error", str(e))
 
+def ask_question():
+    question = question_entry.get()
+    if not question:
+        tk.messagebox.showerror("Error", "Please enter a question.")
+        return
+    
+    summary = summary_text.get("1.0", tk.END)
+    update_status("🤔 Thinking about your question...")
+    
+    def answer_thread():
+        try:
+            answer = answer_question(summary, question)
+            answer_text.configure(state="normal")
+            answer_text.delete("1.0", tk.END)
+            answer_text.insert(tk.END, answer)
+            answer_text.configure(state="disabled")
+            update_status("✅ Question answered!")
+        except Exception as e:
+            error_message = f"❌ An error occurred while answering the question: {str(e)}"
+            answer_text.configure(state="normal")
+            answer_text.delete("1.0", tk.END)
+            answer_text.insert(tk.END, error_message)
+            answer_text.configure(state="disabled")
+            update_status("Error occurred while answering the question.")
+    
+    threading.Thread(target=answer_thread, daemon=True).start()
+
 # Set up the main window
 root = ctk.CTk()
-root.title("SummarAI - Advanced YouTube Video Summarizer")
-root.geometry("1000x800")  # Increased width and height
+root.title("SummarAI - Advanced YouTube Video Summarizer with Q&A")
+root.geometry("1000x900")  # Increased height to accommodate new elements
 
 # ASCII art logo with color
 logo_text = """
@@ -181,7 +243,7 @@ summarize_button.pack(pady=(0, 20))
 thumbnail_label = ctk.CTkLabel(frame, text="")
 thumbnail_label.pack(pady=(0, 20))
 
-summary_text = ctk.CTkTextbox(frame, wrap="word", width=900, height=600, font=("Arial", 12))  # Larger text box
+summary_text = ctk.CTkTextbox(frame, wrap="word", width=900, height=400, font=("Arial", 12))
 summary_text.pack(pady=(0, 20))
 summary_text.configure(state="disabled")
 
@@ -189,6 +251,21 @@ status_label = ctk.CTkLabel(frame, text="", font=("Arial", 14, "italic"))
 status_label.pack(pady=(0, 10))
 
 progress_bar = ctk.CTkProgressBar(frame, mode="indeterminate", width=400)
-# Don't pack the progress bar here, we'll pack it when needed
+
+# New frame for question and answer
+question_frame = ctk.CTkFrame(frame)
+question_frame.pack(pady=20, fill="x", expand=True)
+question_frame.pack_forget()  # Initially hidden
+
+ctk.CTkLabel(question_frame, text="❓ Ask a question about the summary:", font=("Arial", 16, "bold")).pack(pady=(0, 5))
+question_entry = ctk.CTkEntry(question_frame, width=400, height=40, font=("Arial", 14))
+question_entry.pack(pady=(0, 10))
+
+ask_button = ctk.CTkButton(question_frame, text="🔍 Ask Question", command=ask_question, font=("Arial", 14, "bold"), height=40)
+ask_button.pack(pady=(0, 10))
+
+answer_text = ctk.CTkTextbox(question_frame, wrap="word", width=800, height=150, font=("Arial", 12))
+answer_text.pack(pady=(0, 10))
+answer_text.configure(state="disabled")
 
 root.mainloop()
