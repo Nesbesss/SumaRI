@@ -78,7 +78,7 @@ def get_thumbnail(video_id):
     url = f"https://img.youtube.com/vi/{video_id}/0.jpg"
     response = requests.get(url)
     img = Image.open(BytesIO(response.content))
-    img.thumbnail((400, 300))  # Increased thumbnail size
+    img.thumbnail((200, 150))  # Smaller thumbnail size
     return ImageTk.PhotoImage(img)
 
 def update_status(message):
@@ -163,13 +163,13 @@ ctk.CTkLabel(frame, text="🎥 Enter YouTube Video URL:", font=("Arial", 18, "bo
 video_id_entry = ctk.CTkEntry(frame, width=400, height=40, font=("Arial", 14))
 video_id_entry.pack(pady=(0, 15))
 
-summarize_button = ctk.CTkButton(frame, text="🚀 Generate Comprehensive Summary", command=start_summarize, font=("Arial", 16, "bold"), height=50)
+summarize_button = ctk.CTkButton(frame, text="🚀 Generate a Summary", command=start_summarize, font=("Arial", 16, "bold"), height=50)
 summarize_button.pack(pady=(0, 20))
 
 thumbnail_label = ctk.CTkLabel(frame, text="")
 thumbnail_label.pack(pady=(0, 20))
 
-summary_text = ctk.CTkTextbox(frame, wrap="word", width=900, height=500, font=("Arial", 12))
+summary_text = ctk.CTkTextbox(frame, wrap="word", width=900, height=600, font=("Arial", 12))  # Larger text box
 summary_text.pack(pady=(0, 20))
 summary_text.configure(state="disabled")
 
