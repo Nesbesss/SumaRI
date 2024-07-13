@@ -141,8 +141,9 @@ def summarize_thread(video_id):
             summary_text.delete("1.0", tk.END)
             summary_text.insert(tk.END, summary)
             summary_text.configure(state="disabled")
-            update_status("✅ Summary complete! Scroll down to read the full analysis.")
-            question_frame.pack(pady=20, fill="x", expand=True)
+            update_status("✅ Summary complete! You can now ask questions about the summary.")
+            question_frame.pack(side="right", fill="both", expand=True)
+            ask_button.configure(state="normal")
         except Exception as e:
             error_message = f"❌ An error occurred while summarizing: {str(e)}"
             summary_text.configure(state="normal")
@@ -178,7 +179,10 @@ def start_summarize():
         progress_bar.pack(pady=(0, 10))
         progress_bar.start()
         summarize_button.configure(state="disabled")
-        question_frame.pack_forget()  # Hide question frame when starting a new summary
+        ask_button.configure(state="disabled")
+        answer_text.configure(state="normal")
+        answer_text.delete("1.0", tk.END)
+        answer_text.configure(state="disabled")
         
         threading.Thread(target=summarize_thread, args=(video_id,), daemon=True).start()
     except Exception as e:
@@ -192,6 +196,7 @@ def ask_question():
     
     summary = summary_text.get("1.0", tk.END)
     update_status("🤔 Thinking about your question...")
+    ask_button.configure(state="disabled")
     
     def answer_thread():
         try:
@@ -208,13 +213,15 @@ def ask_question():
             answer_text.insert(tk.END, error_message)
             answer_text.configure(state="disabled")
             update_status("Error occurred while answering the question.")
+        finally:
+            ask_button.configure(state="normal")
     
     threading.Thread(target=answer_thread, daemon=True).start()
 
 # Set up the main window
 root = ctk.CTk()
 root.title("SummarAI - Advanced YouTube Video Summarizer with Q&A")
-root.geometry("1000x900")  # Increased height to accommodate new elements
+root.geometry("1200x800")  # Increased width to accommodate side-by-side layout
 
 # ASCII art logo with color
 logo_text = """
@@ -230,31 +237,34 @@ logo_label = ctk.CTkLabel(root, text=logo_text, font=("Courier", 16, "bold"), te
 logo_label.pack(pady=(20, 10))
 
 # Create and place widgets
-frame = ctk.CTkFrame(root)
-frame.pack(pady=20, padx=20, fill="both", expand=True)
+main_frame = ctk.CTkFrame(root)
+main_frame.pack(pady=20, padx=20, fill="both", expand=True)
 
-ctk.CTkLabel(frame, text="🎥 Enter YouTube Video URL:", font=("Arial", 18, "bold")).pack(pady=(0, 5))
-video_id_entry = ctk.CTkEntry(frame, width=400, height=40, font=("Arial", 14))
-video_id_entry.pack(pady=(0, 15))
+input_frame = ctk.CTkFrame(main_frame)
+input_frame.pack(fill="x", padx=10, pady=10)
 
-summarize_button = ctk.CTkButton(frame, text="🚀 Generate Comprehensive Summary", command=start_summarize, font=("Arial", 16, "bold"), height=50)
-summarize_button.pack(pady=(0, 20))
+ctk.CTkLabel(input_frame, text="🎥 Enter YouTube Video URL:", font=("Arial", 18, "bold")).pack(side="left", padx=(0, 10))
+video_id_entry = ctk.CTkEntry(input_frame, width=400, height=40, font=("Arial", 14))
+video_id_entry.pack(side="left", padx=(0, 10))
 
-thumbnail_label = ctk.CTkLabel(frame, text="")
-thumbnail_label.pack(pady=(0, 20))
+summarize_button = ctk.CTkButton(input_frame, text="🚀 Generate Summary", command=start_summarize, font=("Arial", 16, "bold"), height=40)
+summarize_button.pack(side="left")
 
-summary_text = ctk.CTkTextbox(frame, wrap="word", width=900, height=400, font=("Arial", 12))
-summary_text.pack(pady=(0, 20))
+thumbnail_label = ctk.CTkLabel(main_frame, text="")
+thumbnail_label.pack(pady=(0, 10))
+
+content_frame = ctk.CTkFrame(main_frame)
+content_frame.pack(fill="both", expand=True)
+
+summary_frame = ctk.CTkFrame(content_frame)
+summary_frame.pack(side="left", fill="both", expand=True, padx=(0, 5))
+
+summary_text = ctk.CTkTextbox(summary_frame, wrap="word", width=600, height=400, font=("Arial", 12))
+summary_text.pack(fill="both", expand=True)
 summary_text.configure(state="disabled")
 
-status_label = ctk.CTkLabel(frame, text="", font=("Arial", 14, "italic"))
-status_label.pack(pady=(0, 10))
-
-progress_bar = ctk.CTkProgressBar(frame, mode="indeterminate", width=400)
-
-# New frame for question and answer
-question_frame = ctk.CTkFrame(frame)
-question_frame.pack(pady=20, fill="x", expand=True)
+question_frame = ctk.CTkFrame(content_frame)
+question_frame.pack(side="right", fill="both", expand=True, padx=(5, 0))
 question_frame.pack_forget()  # Initially hidden
 
 ctk.CTkLabel(question_frame, text="❓ Ask a question about the summary:", font=("Arial", 16, "bold")).pack(pady=(0, 5))
@@ -264,8 +274,17 @@ question_entry.pack(pady=(0, 10))
 ask_button = ctk.CTkButton(question_frame, text="🔍 Ask Question", command=ask_question, font=("Arial", 14, "bold"), height=40)
 ask_button.pack(pady=(0, 10))
 
-answer_text = ctk.CTkTextbox(question_frame, wrap="word", width=800, height=150, font=("Arial", 12))
-answer_text.pack(pady=(0, 10))
+answer_text = ctk.CTkTextbox(question_frame, wrap="word", width=400, height=300, font=("Arial", 12))
+answer_text.pack(fill="both", expand=True, pady=(0, 10))
 answer_text.configure(state="disabled")
+
+status_frame = ctk.CTkFrame(main_frame)
+status_frame.pack(fill="x", padx=10, pady=10)
+
+status_label = ctk.CTkLabel(status_frame, text="", font=("Arial", 14, "italic"))
+status_label.pack(side="left")
+
+progress_bar = ctk.CTkProgressBar(status_frame, mode="indeterminate", width=200)
+progress_bar.pack(side="right")
 
 root.mainloop()
