@@ -7,6 +7,7 @@ import requests
 from io import BytesIO
 import threading
 import time
+import re
 
 # Set up Groq client with the API key
 client = Groq(
@@ -15,6 +16,14 @@ client = Groq(
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
+
+def get_video_id(url):
+    youtube_regex = (
+        r'(https?://)?(www\.)?'
+        '(youtube|youtu|youtube-nocookie)\.(com|be)/'
+        '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
+    match = re.search(youtube_regex, url)
+    return match.group(6) if match else None
 
 def get_video_transcript(video_id):
     try:
@@ -106,9 +115,10 @@ def summarize_thread(video_id):
     summarize_button.configure(state="normal")
 
 def start_summarize():
-    video_id = video_id_entry.get()
+    video_url = video_id_entry.get()
+    video_id = get_video_id(video_url)
     if not video_id:
-        tk.messagebox.showerror("Error", "Please enter a YouTube Video ID.")
+        tk.messagebox.showerror("Error", "Please enter a valid YouTube Video URL.")
         return
     
     try:
@@ -149,7 +159,7 @@ logo_label.pack(pady=(20, 10))
 frame = ctk.CTkFrame(root)
 frame.pack(pady=20, padx=20, fill="both", expand=True)
 
-ctk.CTkLabel(frame, text="🎥 Enter YouTube Video ID:", font=("Arial", 18, "bold")).pack(pady=(0, 5))
+ctk.CTkLabel(frame, text="🎥 Enter YouTube Video URL:", font=("Arial", 18, "bold")).pack(pady=(0, 5))
 video_id_entry = ctk.CTkEntry(frame, width=400, height=40, font=("Arial", 14))
 video_id_entry.pack(pady=(0, 15))
 
