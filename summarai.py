@@ -1,7 +1,7 @@
 import tkinter as tk
 import customtkinter as ctk
 from PIL import Image, ImageTk
-from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
 from groq import Groq
 import requests
 from io import BytesIO
@@ -25,10 +25,17 @@ def get_video_id(url):
     match = re.search(youtube_regex, url)
     return match.group(6) if match else None
 
-def get_video_transcript(video_id):
+def get_video_transcript(video_id, language_code='en'):
     try:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        return " ".join([entry['text'] for entry in transcript])
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        transcript = transcript_list.find_transcript([language_code])
+        return " ".join([entry['text'] for entry in transcript.fetch()])
+    except TranscriptsDisabled:
+        print("Transcripts are disabled for this video.")
+        return None
+    except NoTranscriptFound:
+        print(f"No transcript found for language code: {language_code}")
+        return None
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
@@ -85,9 +92,9 @@ def update_status(message):
     status_label.configure(text=message)
     root.update_idletasks()
 
-def summarize_thread(video_id):
+def summarize_thread(video_id, language_code):
     update_status("📥 Retrieving video transcript...")
-    transcript = get_video_transcript(video_id)
+    transcript = get_video_transcript(video_id, language_code)
     if transcript:
         update_status("🧠 Analyzing and summarizing... This may take a few moments.")
         try:
@@ -116,6 +123,7 @@ def summarize_thread(video_id):
 
 def start_summarize():
     video_url = video_id_entry.get()
+    language_code = language_entry.get()
     video_id = get_video_id(video_url)
     if not video_id:
         tk.messagebox.showerror("Error", "Please enter a valid YouTube Video URL.")
@@ -133,7 +141,7 @@ def start_summarize():
         progress_bar.start()
         summarize_button.configure(state="disabled")
         
-        threading.Thread(target=summarize_thread, args=(video_id,), daemon=True).start()
+        threading.Thread(target=summarize_thread, args=(video_id, language_code), daemon=True).start()
     except Exception as e:
         tk.messagebox.showerror("Error", str(e))
 
@@ -163,7 +171,11 @@ ctk.CTkLabel(frame, text="🎥 Enter YouTube Video URL:", font=("Arial", 18, "bo
 video_id_entry = ctk.CTkEntry(frame, width=400, height=40, font=("Arial", 14))
 video_id_entry.pack(pady=(0, 15))
 
-summarize_button = ctk.CTkButton(frame, text="🚀 Generate a Summary", command=start_summarize, font=("Arial", 16, "bold"), height=50)
+ctk.CTkLabel(frame, text="🌐 Enter Language Code (e.g., 'en' for English, 'nl' for Dutch):", font=("Arial", 18, "bold")).pack(pady=(0, 5))
+language_entry = ctk.CTkEntry(frame, width=400, height=40, font=("Arial", 14))
+language_entry.pack(pady=(0, 15))
+
+summarize_button = ctk.CTkButton(frame, text="🚀 Generate Comprehensive Summary", command=start_summarize, font=("Arial", 16, "bold"), height=50)
 summarize_button.pack(pady=(0, 20))
 
 thumbnail_label = ctk.CTkLabel(frame, text="")
