@@ -1,13 +1,14 @@
 # SumaRI
-# SumarAI - YouTube Video Summarizer
+# SumarAI - YouTube Video and Website Summarizer
 
-SumarAI is a Python application that summarizes YouTube video transcripts using the Groq API. This project uses `tkinter` and `customtkinter` for the GUI, `PIL` for image handling, and `YouTubeTranscriptApi` for fetching transcripts.
+SumarAI is a Python application that summarizes YouTube video transcripts and website content using the Groq API. This project uses `tkinter` and `customtkinter` for the GUI, `PIL` for image handling, `YouTubeTranscriptApi` for fetching video transcripts, and `BeautifulSoup` for extracting website text.
 
 ## Features
 
 - Fetches and displays YouTube video thumbnails.
-- Retrieves video transcripts.
-- Summarizes transcripts to highlight the main points.
+- Retrieves and summarizes YouTube video transcripts.
+- Summarizes website content to highlight the main points.
+- Allows users to ask questions about the generated summary.
 
 ## Requirements
 
@@ -22,7 +23,7 @@ SumarAI is a Python application that summarizes YouTube video transcripts using 
     cd SumaRI
     ```
 
-2. Create a virtual environment and activate it (not necessary):
+2. Create a virtual environment and activate it (optional):
 
     ```bash
     python -m venv env
@@ -34,11 +35,13 @@ SumarAI is a Python application that summarizes YouTube video transcripts using 
     ```bash
     pip3 install -r requirements.txt 
     ```
+
 4. Set up your Groq API key:
- ```bash 
-vi summarai.py then save it #windows notepad summarai.py 
-```
-    Replace `"Api_key_here"` in the script with your actual API key from Groq. to get one go to https://console.groq.com/keys its free
+
+    ```bash 
+    vi summarai.py  # On Windows, use notepad summarai.py 
+    ```
+    Replace `"Your_api_key_here"` in the script with your actual API key from Groq. To get one, go to https://console.groq.com/keys. It's free.
 
 ## Usage
 
@@ -48,14 +51,16 @@ vi summarai.py then save it #windows notepad summarai.py
     python summarai.py
     ```
 
-2. Enter a YouTube video ID in the input field and click the "Summarize" button.
+2. Enter a YouTube video URL or website URL in the input field and click the "Generate Summary" button.
 
-3. The application will fetch the video thumbnail, retrieve the transcript, and provide a summary of the main points.
+3. The application will fetch the video thumbnail (for YouTube), retrieve the transcript (for YouTube), and provide a summary of the main points.
+
+4. You can then enter questions about the summary in the input field and click the "Ask Question" button to get answers based on the summarized content.
 
 ## Example
 
-- **Input:** YouTube Video ID: `72Q4g3V8woc`
-- **Output:** Displayed video thumbnail and summary of the video transcript.
+- **Input:** YouTube Video URL: `https://www.youtube.com/watch?v=72Q4g3V8woc` or Website URL: `https://example.com`
+- **Output:** Displayed video thumbnail (for YouTube) and summary of the video transcript or website content.
 
 ## Contributing
 
@@ -64,5 +69,3 @@ If you would like to contribute, please fork the repository and use a feature br
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-
