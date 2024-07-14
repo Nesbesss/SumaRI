@@ -32,7 +32,7 @@ SumarAI is a Python application that summarizes YouTube video transcripts using 
 3. Install the required packages:
 
     ```bash
-    pip install -r requirements.txt
+    pip3 install -r requirements.txt 
     ```
 4. Set up your Groq API key:
  ```bash 
