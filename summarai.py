@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
 from groq import Groq
 import requests
+from bs4 import BeautifulSoup
 from io import BytesIO
 import threading
 import time
@@ -45,11 +46,26 @@ def get_video_transcript(video_id):
         print(f"An error occurred: {e}")
         return None
 
+def get_website_text(url):
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Extract text from common HTML elements
+        paragraphs = soup.find_all('p')
+        text = " ".join([p.get_text() for p in paragraphs])
+
+        # Optionally, add more elements if needed (e.g., headings)
+        return text
+    except Exception as e:
+        print(f"An error occurred while fetching website content: {e}")
+        return None
+
 def summarize_text(text):
     max_chars = 10000
     truncated_text = text[:max_chars] + ("..." if len(text) > max_chars else "")
     
-    prompt = (f"Provide a detailed summary of the following YouTube video transcript. "
+    prompt = (f"Provide a detailed summary of the following content. "
               f"Include the following sections:\n\n"
               f"1. 🎯 Overall Summary (2-3 paragraphs)\n"
               f"2. 📌 Main Points (5-7 bullet points)\n"
@@ -57,9 +73,9 @@ def summarize_text(text):
               f"4. 💡 Important Insights (2-3 paragraphs on the significance of the content)\n"
               f"5. 🔑 Key Concepts (list of 5-7 terms or ideas with brief explanations)\n"
               f"6. 🤔 Thought-Provoking Questions (3-5 questions for further reflection)\n"
-              f"7. 📊 Content Structure (brief overview of how the video is organized)\n"
-              f"8. 🎭 Tone and Style (1 paragraph describing the presenter's approach)\n"
-              f"9. 🎨 Visual Elements (if mentioned in the transcript, describe any significant visual aids)\n"
+              f"7. 📊 Content Structure (brief overview of how the content is organized)\n"
+              f"8. 🎭 Tone and Style (1 paragraph describing the author's approach)\n"
+              f"9. 🎨 Visual Elements (if mentioned in the content, describe any significant visual aids)\n"
               f"10. 📚 Further Reading (suggest 2-3 related topics for additional research)\n\n"
               f"Aim for a comprehensive summary of around 1000 words:\n\n{truncated_text}\n\nDetailed summary:")
     
@@ -87,7 +103,7 @@ def summarize_text(text):
                 raise e
 
 def answer_question(summary, question):
-    prompt = f"""Based on the following summary of a YouTube video, please answer the question:
+    prompt = f"""Based on the following summary, please answer the question:
 
 Summary:
 {summary}
@@ -130,9 +146,17 @@ def update_status(message):
     status_label.configure(text=message)
     root.update_idletasks()
 
-def summarize_thread(video_id):
-    update_status("📥 Retrieving video transcript...")
-    transcript = get_video_transcript(video_id)
+def summarize_thread(url, is_youtube):
+    update_status("📥 Retrieving content...")
+    if is_youtube:
+        video_id = get_video_id(url)
+        transcript = get_video_transcript(video_id)
+        thumbnail = get_thumbnail(video_id)
+        thumbnail_label.configure(image=thumbnail)
+        thumbnail_label.image = thumbnail
+    else:
+        transcript = get_website_text(url)
+    
     if transcript:
         update_status("🧠 Analyzing and summarizing... This may take a few moments.")
         try:
@@ -154,27 +178,33 @@ def summarize_thread(video_id):
     else:
         summary_text.configure(state="normal")
         summary_text.delete("1.0", tk.END)
-        summary_text.insert(tk.END, "❌ Failed to retrieve the video transcript.")
+        summary_text.insert(tk.END, "❌ Failed to retrieve the content.")
         summary_text.configure(state="disabled")
-        update_status("Failed to retrieve transcript.")
+        update_status("Failed to retrieve content.")
     progress_bar.stop()
     progress_bar.pack_forget()
     summarize_button.configure(state="normal")
 
 def start_summarize():
-    video_url = video_id_entry.get()
-    video_id = get_video_id(video_url)
-    if not video_id:
-        tk.messagebox.showerror("Error", "Please enter a valid YouTube Video URL.")
+    url = url_entry.get()
+    if not url:
+        tk.messagebox.showerror("Error", "Please enter a valid URL.")
         return
     
+    is_youtube = bool(get_video_id(url))
+    
     try:
-        thumbnail = get_thumbnail(video_id)
-        thumbnail_label.configure(image=thumbnail)
-        thumbnail_label.image = thumbnail
+        if is_youtube:
+            thumbnail = get_thumbnail(get_video_id(url))
+            thumbnail_label.configure(image=thumbnail)
+            thumbnail_label.image = thumbnail
+        else:
+            thumbnail_label.configure(image="")
+            thumbnail_label.image = None
+        
         summary_text.configure(state="normal")
         summary_text.delete("1.0", tk.END)
-        summary_text.insert(tk.END, "🔍 Analyzing video content... Please wait.")
+        summary_text.insert(tk.END, "🔍 Analyzing content... Please wait.")
         summary_text.configure(state="disabled")
         progress_bar.pack(pady=(0, 10))
         progress_bar.start()
@@ -184,7 +214,7 @@ def start_summarize():
         answer_text.delete("1.0", tk.END)
         answer_text.configure(state="disabled")
         
-        threading.Thread(target=summarize_thread, args=(video_id,), daemon=True).start()
+        threading.Thread(target=summarize_thread, args=(url, is_youtube), daemon=True).start()
     except Exception as e:
         tk.messagebox.showerror("Error", str(e))
 
@@ -220,7 +250,7 @@ def ask_question():
 
 # Set up the main window
 root = ctk.CTk()
-root.title("SummarAI - Advanced YouTube Video Summarizer with Q&A")
+root.title("SummarAI - Advanced YouTube Video and Website Summarizer with Q&A")
 root.geometry("1200x800")  # Increased width to accommodate side-by-side layout
 
 # ASCII art logo with color
@@ -243,9 +273,9 @@ main_frame.pack(pady=20, padx=20, fill="both", expand=True)
 input_frame = ctk.CTkFrame(main_frame)
 input_frame.pack(fill="x", padx=10, pady=10)
 
-ctk.CTkLabel(input_frame, text="🎥 Enter YouTube Video URL:", font=("Arial", 18, "bold")).pack(side="left", padx=(0, 10))
-video_id_entry = ctk.CTkEntry(input_frame, width=400, height=40, font=("Arial", 14))
-video_id_entry.pack(side="left", padx=(0, 10))
+ctk.CTkLabel(input_frame, text="🔗 Enter YouTube Video or Website URL:", font=("Arial", 18, "bold")).pack(side="left", padx=(0, 10))
+url_entry = ctk.CTkEntry(input_frame, width=400, height=40, font=("Arial", 14))
+url_entry.pack(side="left", padx=(0, 10))
 
 summarize_button = ctk.CTkButton(input_frame, text="🚀 Generate Summary", command=start_summarize, font=("Arial", 16, "bold"), height=40)
 summarize_button.pack(side="left")
